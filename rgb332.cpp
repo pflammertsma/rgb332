@@ -58,7 +58,7 @@ truecolor, my palette, my palette dithered
 #include <stdlib.h>
 #include <math.h>
 
-#define VERSION "Uniform palette generator, v0.1 by rlyeh (c) 2007"
+#define VERSION "RGB332 palette generator, v0.2 by rlyeh (c) 2007, pflammertsma (c) 2018"
 
 #define GAMMA_DIV                       2.0
 #define GAMMA_RED                       ((0.299 - 0.114) / GAMMA_DIV)
@@ -70,6 +70,8 @@ truecolor, my palette, my palette dithered
 #define COMPONENT_RED_BRIGHTNESS        0.299
 #define COMPONENT_GREEN_BRIGHTNESS      0.587
 #define COMPONENT_BLUE_BRIGHTNESS       0.114
+
+#define USE_GAMMA 0
 
 #define VERBOSE 1
 
@@ -100,13 +102,12 @@ int main(int argc, char *argv[])
 
         gamma[i].b=(unsigned char)(255.0*pow( ((i * 256.0)/(GAMMA_STEPS-1)) /255.0, 1.0 - GAMMA_BLUE));
 
-        if( VERBOSE ) printf("gamma #%-3d %3d %3d %3d\n", i, gamma[i].r, gamma[i].g, gamma[i].b);
+        if (VERBOSE) printf("gamma #%-3d %3d %3d %3d\n", i, gamma[i].r, gamma[i].g, gamma[i].b);
     }
 
     // create custom colour tables
 
-    for (i = 0; i < 256; i++)
-    {
+    for (i = 0; i < 256; i++) {
         int index = i;
 
         r = (index >> 5) & 0x7;
@@ -114,104 +115,101 @@ int main(int argc, char *argv[])
         b = (index >> 0) & 0x3;
 
         //make a pure RGB332 colour
-        palette[index].r = (r * 255.0) / 7.0;
-        palette[index].g = (g * 255.0) / 7.0;
-        palette[index].b = (b * 255.0) / 3.0;
+        palette[index].r = round((r * 255.0) / 7.0);
+        palette[index].g = round((g * 255.0) / 7.0);
+        palette[index].b = round((b * 255.0) / 3.0);
 
-        //fix blue component to give a few true greys
-        palette[index].b = (b * 255.0) / 3.5;   //(2^3 / 2^2) = 2 -> 7.0 / 2 = 3.5
+        if (USE_GAMMA) {
+            //fix blue component to give a few true greys
+            palette[index].b = (b * 255.0) / 3.5;   //(2^3 / 2^2) = 2 -> 7.0 / 2 = 3.5
 
-        //soft and blend components in non greys colours
-        if((palette[index].r != palette[index].g) || (palette[index].g != palette[index].b) || (palette[index].r != palette[index].b))
-        {
-        float r1, g1, b1, media, mediar, mediag, mediab;
+            //soft and blend components in non greys colours
+            if ((palette[index].r != palette[index].g) || (palette[index].g != palette[index].b) || (palette[index].r != palette[index].b)) {
+                float r1, g1, b1, media, mediar, mediag, mediab;
 
-        r1 = palette[index].r;
-        g1 = palette[index].g;
-        b1 = palette[index].b;
+                r1 = palette[index].r;
+                g1 = palette[index].g;
+                b1 = palette[index].b;
 
-        media = (r1 * COMPONENT_RED_BRIGHTNESS + g1 * COMPONENT_GREEN_BRIGHTNESS + b1 * COMPONENT_BLUE_BRIGHTNESS);
+                media = (r1 * COMPONENT_RED_BRIGHTNESS + g1 * COMPONENT_GREEN_BRIGHTNESS + b1 * COMPONENT_BLUE_BRIGHTNESS);
 
-        if(!media) media = 1.0;
+                if (!media) media = 1.0;
 
-        mediar = ((r1) * (COMPONENT_INTERPOLATION) + ((g1 * b1) / media) * (1.0 - COMPONENT_INTERPOLATION) );
-        mediag = ((g1) * (COMPONENT_INTERPOLATION) + ((r1 * b1) / media) * (1.0 - COMPONENT_INTERPOLATION) );
-        mediab = ((b1) * (COMPONENT_INTERPOLATION) + ((r1 * g1) / media) * (1.0 - COMPONENT_INTERPOLATION) );
+                mediar = ((r1) * (COMPONENT_INTERPOLATION) + ((g1 * b1) / media) * (1.0 - COMPONENT_INTERPOLATION) );
+                mediag = ((g1) * (COMPONENT_INTERPOLATION) + ((r1 * b1) / media) * (1.0 - COMPONENT_INTERPOLATION) );
+                mediab = ((b1) * (COMPONENT_INTERPOLATION) + ((r1 * g1) / media) * (1.0 - COMPONENT_INTERPOLATION) );
 
-        if(mediar > 255.0 || mediag > 255.0 || mediab > 255.0)
-        {
-            printf("error: color overflow at r,g,b = %f %f %f (%d %d %d, %f)\n", r1,g1,b1,mediar,mediag,mediab,media);
+                if (mediar > 255.0 || mediag > 255.0 || mediab > 255.0) {
+                    printf("error: color overflow at r,g,b = %f %f %f (%d %d %d, %f)\n", r1,g1,b1,mediar,mediag,mediab,media);
+                    exit(1);
+                }
+
+                //apply gamma
+                palette[index].r = gamma[(int)mediar].r;
+                palette[index].g = gamma[(int)mediag].g;
+                palette[index].b = gamma[(int)mediab].b;
+            }
+        }
+    }
+
+    if (USE_GAMMA) {
+        // make #255 colour a pure white
+        //palette[255].r = palette[255].g = palette[255].b = 255.0;
+
+        // make #255 colour (slighty white) more pure
+        palette[255].r = (palette[255].r + 255.0) / 2.0;
+        palette[255].g = (palette[255].g + 255.0) / 2.0;
+        palette[255].b = (palette[255].b + 255.0) / 2.0;
+    }
+
+    // save our palette to a Photoshop .act file
+    {
+        FILE *fp_act, *fp_h;
+        char file_act[256], file_h[256];
+
+        sprintf(file_act, "%s.act", argv[1]);
+        sprintf(file_h,   "%s.h", argv[1]);
+
+        fp_act = fopen(file_act, "wb");
+
+        if (!fp_act) {
+            printf("can't write file '%s' for writing\n", file_act);
             exit(1);
         }
 
-        //apply gamma
-        palette[index].r = gamma[(int)mediar].r;
-        palette[index].g = gamma[(int)mediag].g;
-        palette[index].b = gamma[(int)mediab].b;
+        fp_h = fopen(file_h, "wb");
+
+        if (!fp_h) {
+            printf("can't write file '%s' for writing\n", file_h);
+            exit(1);
         }
-    }
 
-    // make #255 colour a pure white
-    //palette[255].r = palette[255].g = palette[255].b = 255.0;
+        fprintf(fp_h,"const unsigned char uniform_palette[] =\n{\n");
 
-    // make #255 colour (slighty white) more pure
-    palette[255].r = (palette[255].r + 255.0) / 2.0;
-    palette[255].g = (palette[255].g + 255.0) / 2.0;
-    palette[255].b = (palette[255].b + 255.0) / 2.0;
+        for (i = 0; i < 256; ) {
+            unsigned char r1,g1,b1;
 
-    // save our palette to a Photoshop .act file
+            r1 = palette[i].r;
+            g1 = palette[i].g;
+            b1 = palette[i].b;
 
-    {
-    FILE *fp_act, *fp_h;
-    char file_act[256], file_h[256];
+            fputc(r1, fp_act);
+            fputc(g1, fp_act);
+            fputc(b1, fp_act);
 
-    sprintf(file_act, "%s.act", argv[1]);
-    sprintf(file_h,   "%s.h", argv[1]);
+            ++i;
 
-    fp_act = fopen(file_act, "wb");
+            char str[256];
+            sprintf(str, " 0x%02x,0x%02x,0x%02x%c%c", r1,g1,b1, i == 256 ? ' ' : ',', i % 4 ? ' ' : '\n');
+            fprintf(fp_h, "%s", str );
 
-    if(!fp_act)
-    {
-        printf("can't write file '%s' for writing\n", file_act);
-        exit(1);
-    }
+            if (VERBOSE) printf("%s", str );
+        }
 
-    fp_h = fopen(file_h, "wb");
+        fprintf(fp_h,"};\n\n");
 
-    if(!fp_h)
-    {
-        printf("can't write file '%s' for writing\n", file_h);
-        exit(1);
-    }
-
-    fprintf(fp_h,"const unsigned char uniform_palette[] =\n{\n");
-
-    for (i = 0; i < 256; )
-    {
-        unsigned char r1,g1,b1;
-
-        r1 = palette[i].r;
-        g1 = palette[i].g;
-        b1 = palette[i].b;
-
-        fputc(r1, fp_act);
-        fputc(g1, fp_act);
-        fputc(b1, fp_act);
-
-        ++i;
-
-        char str[256];
-        sprintf(str, " 0x%02x,0x%02x,0x%02x%c%c", r1,g1,b1, i == 256 ? ' ' : ',', i % 4 ? ' ' : '\n');
-        fprintf(fp_h, "%s", str );
-
-        if( VERBOSE )
-            printf("%s", str );
-    }
-
-    fprintf(fp_h,"};\n\n");
-
-    fclose(fp_act);
-    fclose(fp_h);
+        fclose(fp_act);
+        fclose(fp_h);
     }
 
     printf("Done!\n");
