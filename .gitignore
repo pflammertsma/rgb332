@@ -1,0 +1,7 @@
+.DS_Store
+
+# intermediates
+*.act.h
+
+# binary
+rgb332
