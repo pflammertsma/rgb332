@@ -1,21 +1,30 @@
-rgb332
+RGB332
 ======
 
-- A custom uniform RGB332 palette.
-- See internal details on `rgb332.cpp` file.
-- zlib/libpng licensed.
+Generates a pure or custom uniform RGB332 palette in Adobe Color Table (.ACT) binary file format.
 
-image comparison
-----------------
+(See this Wikipedia article)[https://en.wikipedia.org/wiki/List_of_monochrome_and_RGB_palettes#3-3-2_bit_RGB] for more information about the RGB 3-3-2 color space.
+
+The custom palette uses gamma shift to provide a more visual appealing result. See the remarks below.
+
+## Notes
+
+- See internal details in [`rgb332.cpp`](rgb332.cpp).
+- License restrictions of zlib/libpng apply.
+
+## Palette image comparison
 
 Lena original  
-![image](https://raw.github.com/r-lyeh/depot/master/lena-original.jpg)
+![image](https://raw.githubusercontent.com/pflammertsma/rgb332/master/samples/lena-original.jpg)
 
 Classic gamma corrected uniform palette  
-![image](https://raw.github.com/r-lyeh/depot/master/lena-gamma-corrected-uniform-palette.gif)
+![image](https://raw.githubusercontent.com/pflammertsma/rgb332/master/samples/lena-gamma-corrected-uniform-palette.gif)
 
 Classic websafe uniform palette  
-![image](https://raw.github.com/r-lyeh/depot/master/lena-websafe.gif)
+![image](https://raw.githubusercontent.com/pflammertsma/rgb332/master/samples/lena-websafe.gif)
 
-My custom uniform RGB332 palette  
-![image](https://raw.github.com/r-lyeh/depot/master/lena-my332.png)
+RGB332 pure uniform RGB332 palette  
+![image](https://raw.githubusercontent.com/pflammertsma/rgb332/master/samples/lena-rgb332-pure.png)
+
+RGB332 custom uniform RGB332 palette  
+![image](https://raw.githubusercontent.com/pflammertsma/rgb332/master/samples/lena-rgb332-custom.png)
