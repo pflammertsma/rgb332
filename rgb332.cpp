@@ -164,11 +164,13 @@ int main(int argc, char *argv[])
 
     // save our palette to a Photoshop .act file
     {
-        FILE *fp_act, *fp_h;
-        char file_act[256], file_h[256];
+        FILE *fp_act, *fp_h, *fp_gpl, *fp_txt;
+        char file_act[256], file_h[256], file_gpl[256], file_txt[256];
 
         sprintf(file_act, "%s.act", argv[1]);
         sprintf(file_h,   "%s.h", argv[1]);
+        sprintf(file_gpl, "%s.gpl", argv[1]);
+        sprintf(file_txt, "%s.txt", argv[1]);
 
         fp_act = fopen(file_act, "wb");
 
@@ -184,7 +186,26 @@ int main(int argc, char *argv[])
             exit(1);
         }
 
-        fprintf(fp_h,"const unsigned char uniform_palette[] =\n{\n");
+        fp_gpl = fopen(file_gpl, "wb");
+
+        if (!fp_h) {
+            printf("can't write file '%s' for writing\n", file_gpl);
+            exit(1);
+        }
+
+        fp_txt = fopen(file_txt, "wb");
+
+        if (!fp_h) {
+            printf("can't write file '%s' for writing\n", file_txt);
+            exit(1);
+        }
+
+        fprintf(fp_h, "const unsigned char uniform_palette[] =\n{\n");
+
+        fprintf(fp_gpl, "GIMP Palette\n");
+        fprintf(fp_gpl, "Name: RGB332\n");
+        fprintf(fp_gpl, "Columns: 16\n");
+        fprintf(fp_gpl, "#\n");
 
         for (i = 0; i < 256; ) {
             unsigned char r1,g1,b1;
@@ -200,8 +221,14 @@ int main(int argc, char *argv[])
             ++i;
 
             char str[256];
-            sprintf(str, " 0x%02x,0x%02x,0x%02x%c%c", r1,g1,b1, i == 256 ? ' ' : ',', i % 4 ? ' ' : '\n');
+            sprintf(str, "  0x%02x,0x%02x,0x%02x%c%c", r1,g1,b1, i == 256 ? ' ' : ',', i % 4 ? ' ' : '\n');
             fprintf(fp_h, "%s", str );
+
+            sprintf(str, "%d %d %d Untitled\n", r1,g1,b1);
+            fprintf(fp_gpl, "%s", str );
+
+            sprintf(str, "#%02x%02x%02x\n", r1,g1,b1);
+            fprintf(fp_txt, "%s", str );
 
             if (VERBOSE) printf("%s", str );
         }
@@ -210,6 +237,8 @@ int main(int argc, char *argv[])
 
         fclose(fp_act);
         fclose(fp_h);
+        fclose(fp_gpl);
+        fclose(fp_txt);
     }
 
     printf("Done!\n");
