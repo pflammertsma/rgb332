@@ -72,6 +72,7 @@ truecolor, my palette, my palette dithered
 #define COMPONENT_BLUE_BRIGHTNESS       0.114
 
 #define USE_GAMMA 0
+#define TRANSPARENCY_INDEX 28
 
 #define VERBOSE 1
 
@@ -231,6 +232,16 @@ int main(int argc, char *argv[])
             fprintf(fp_txt, "%s", str );
 
             if (VERBOSE) printf("%s", str );
+        }
+
+        if (TRANSPARENCY_INDEX >= 0) {
+            // Append additional data to ACT:
+            // 256 total colors
+            fputc(0x01, fp_act);
+            fputc(0x00, fp_act);
+            // Transparency index
+            fputc(0x0, fp_act);
+            fputc(TRANSPARENCY_INDEX, fp_act);
         }
 
         fprintf(fp_h,"};\n\n");
