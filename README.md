@@ -3,11 +3,15 @@ RGB332
 
 Generates a pure or custom uniform RGB332 palette in Adobe Color Table (.ACT) binary file format.
 
-This palette is compatible with Wear OS 2.0 H platform requirements for secondary compute resource (SCR) offloading.
-
 [See this Wikipedia article](https://en.wikipedia.org/wiki/List_of_monochrome_and_RGB_palettes#3-3-2_bit_RGB) for more information about the RGB 3-3-2 color space.
 
-The custom palette uses gamma shift to provide a more visual appealing result. See the remarks below.
+## Wear OS 2.0 H platform support
+
+This palette is compatible with Wear OS 2.0 H platform requirements for secondary compute resource (SCR) offloading.
+
+## Gamma shift
+
+The custom palette optionally supports applying gamma shift to provide a more visual appealing result. See the remarks below.
 
 ## Notes
 
